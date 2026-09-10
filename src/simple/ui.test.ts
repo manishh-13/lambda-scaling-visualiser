@@ -83,7 +83,7 @@ describe('the real simple screen', () => {
     const options = container.querySelector('.extra-options')!
     const stage = container.querySelector('.simulation-stage')!
     expect(options.compareDocumentPosition(stage) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(options.querySelector('summary')?.textContent).toContain('Init, idle retirement, account quota & speed')
+    expect(options.querySelector('summary')?.textContent).toContain('Init, warm retention, account quota & speed')
     expect(stage.querySelector('.capacity-column .region-panel')).not.toBeNull()
     expect(stage.querySelector('.scaling-column .scaling-panel')).not.toBeNull()
     expect(container.querySelectorAll('.scaling-panel')).toHaveLength(1)
