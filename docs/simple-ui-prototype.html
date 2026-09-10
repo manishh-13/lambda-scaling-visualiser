@@ -1,0 +1,406 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lambda scaling</title>
+<style>
+  :root {
+    --ink:#1d1d1f; --sub:#86868b; --line:#d2d2d7; --hair:#e8e8ed;
+    --page:#f5f5f7; --card:#fff;
+    --blue:#0071e3; --teal:#0a9d95; --orange:#ff9500; --grey:#c7c7cc; --red:#ff3b30; --violet:#5e5ce6;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--page); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif;
+    -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1040px; margin:0 auto; padding:64px 24px 96px; }
+
+  h1 { margin:0; font-size:clamp(34px,5vw,54px); font-weight:600; letter-spacing:-.032em; line-height:1.05; }
+  .lede { margin:14px 0 0; max-width:34em; font-size:clamp(15px,1.6vw,19px); line-height:1.5; color:var(--sub);
+    letter-spacing:-.01em; }
+  .hero { display:flex; align-items:flex-start; justify-content:space-between; gap:32px; margin-bottom:40px; }
+  .live { display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:99px;
+    background:var(--card); border:1px solid var(--hair); font-size:12px; color:var(--sub); white-space:nowrap; }
+  .beacon { width:7px; height:7px; border-radius:50%; background:var(--grey); }
+  .beacon.on { background:var(--blue); box-shadow:0 0 0 4px rgba(0,113,227,.15); }
+
+  .toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:14px 28px;
+    padding:16px 20px; background:var(--card); border:1px solid var(--hair); border-radius:18px; margin-bottom:12px; }
+  .field { display:flex; align-items:center; gap:11px; font-size:13px; letter-spacing:-.008em; }
+  .field > label { color:var(--sub); }
+  .field .val { font-weight:600; font-variant-numeric:tabular-nums; min-width:56px; }
+  input[type=range] { -webkit-appearance:none; appearance:none; width:120px; height:4px; border-radius:2px;
+    background:var(--line); outline-offset:4px; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%;
+    background:#fff; border:.5px solid rgba(0,0,0,.1); box-shadow:0 1px 4px rgba(0,0,0,.2); cursor:pointer; }
+  .sw { position:relative; width:42px; height:26px; flex:0 0 auto; border:none; padding:0; border-radius:99px;
+    background:#e9e9ed; cursor:pointer; transition:background .22s cubic-bezier(.4,0,.2,1); }
+  .sw::after { content:''; position:absolute; top:2px; left:2px; width:22px; height:22px; border-radius:50%;
+    background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:transform .22s cubic-bezier(.4,0,.2,1); }
+  .sw[data-on="1"]::after { transform:translateX(16px); }
+  .sw[data-on="1"].tl { background:var(--teal); }
+  .sw[data-on="1"].vt { background:var(--violet); }
+  .sw[data-on="1"].or { background:var(--orange); }
+  .sw[data-on="1"].gy { background:#8e8e93; }
+  .stepper { display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:9px; overflow:hidden; }
+  .stepper button { width:26px; height:28px; border:none; background:#fff; color:var(--ink); font-size:14px; cursor:pointer; }
+  .stepper button:hover { background:#f2f2f5; }
+  .stepper input { width:52px; height:28px; border:none; border-left:1px solid var(--hair); border-right:1px solid var(--hair);
+    text-align:center; font:inherit; font-size:13px; font-variant-numeric:tabular-nums; }
+  .stepper.off { opacity:.35; pointer-events:none; }
+  .go { padding:10px 20px; border-radius:99px; border:none; background:var(--blue); color:#fff;
+    font:inherit; font-size:13px; font-weight:600; letter-spacing:-.008em; cursor:pointer; transition:filter .15s; }
+  .go:hover { filter:brightness(1.08); }
+  .go[data-on="1"] { background:var(--ink); }
+  .link { border:none; background:none; color:var(--blue); font:inherit; font-size:13px; cursor:pointer; padding:6px 2px; }
+
+  .stage { display:grid; grid-template-columns:96px 1fr; gap:24px; align-items:center;
+    padding:24px; background:var(--card); border:1px solid var(--hair); border-radius:18px; }
+  .sender { display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .arrow { width:64px; height:64px; border-radius:50%; border:1px solid var(--line); background:#fff;
+    font-size:22px; color:var(--blue); cursor:pointer; transition:transform .15s, border-color .15s, color .15s; }
+  .arrow:hover { transform:translateY(-1px); border-color:var(--blue); }
+  .arrow:active { transform:scale(.94); }
+  .arrow.reject { color:var(--red); border-color:var(--red); animation:nudge .3s; }
+  @keyframes nudge { 30%{transform:translateX(-4px)} 70%{transform:translateX(4px)} }
+  .sender span { font-size:11px; color:var(--sub); text-align:center; line-height:1.35; }
+
+  .regionhead { display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom:12px; }
+  .regionhead .t { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--sub); }
+  .regionhead .n { font-size:13px; font-variant-numeric:tabular-nums; color:var(--sub); }
+  .regionhead .n b { color:var(--ink); font-weight:600; }
+  .grid { display:grid; grid-template-columns:repeat(40,1fr); gap:4px; }
+  .cell { aspect-ratio:1; border-radius:2.5px; background:#ebebf0; }
+  .cell.out { background:#f4f4f7; }
+  .cell.pc { background:#cfeae7; }
+  .cell.warm { background:var(--grey); }
+  .cell.init { background:var(--orange); animation:rise .18s ease-out; }
+  .cell.run { background:var(--blue); animation:rise .18s ease-out; }
+  .cell.pc.run { background:var(--teal); }
+  @keyframes rise { from { transform:scale(.6); opacity:.35 } to { transform:scale(1); opacity:1 } }
+
+  .figs { display:flex; flex-wrap:wrap; gap:0; margin-top:12px; padding:20px 4px;
+    background:var(--card); border:1px solid var(--hair); border-radius:18px; }
+  .fig { flex:1 1 150px; padding:0 20px; border-left:1px solid var(--hair); }
+  .fig:first-child { border-left:none; }
+  .fig .k { font-size:11.5px; color:var(--sub); letter-spacing:-.004em; }
+  .fig .v { margin-top:4px; font-size:30px; font-weight:600; letter-spacing:-.03em; font-variant-numeric:tabular-nums; line-height:1.1; }
+  .fig .v small { font-size:15px; font-weight:500; color:var(--sub); letter-spacing:-.01em; }
+  .fig.hide { display:none; }
+
+  .cap { display:grid; grid-template-columns:1fr 1.25fr; gap:28px; align-items:center; margin-top:12px;
+    padding:22px 24px; background:var(--card); border:1px solid var(--hair); border-radius:18px; }
+  .cap .k { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--sub); }
+  .cap .v { margin-top:6px; font-size:34px; font-weight:600; letter-spacing:-.032em; font-variant-numeric:tabular-nums; }
+  .cap .v small { font-size:15px; font-weight:500; color:var(--sub); }
+  .rail { height:6px; margin-top:12px; border-radius:99px; background:#ebebf0; overflow:hidden; }
+  .rail i { display:block; height:100%; border-radius:99px; background:var(--orange); }
+  .cap p { margin:10px 0 0; font-size:11.5px; line-height:1.5; color:var(--sub); }
+  .chartwrap { position:relative; }
+  .chartwrap .k { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:8px; }
+  .chartwrap .k span { text-transform:none; letter-spacing:-.004em; font-size:11.5px; }
+  canvas { display:block; width:100%; height:104px; }
+
+  details { margin-top:12px; padding:0 20px; background:var(--card); border:1px solid var(--hair); border-radius:18px; }
+  summary { list-style:none; cursor:pointer; padding:16px 0; font-size:13px; font-weight:600; color:var(--ink);
+    display:flex; align-items:center; gap:9px; }
+  summary::-webkit-details-marker { display:none; }
+  summary .cv { color:var(--sub); transition:transform .2s; }
+  details[open] summary .cv { transform:rotate(90deg); }
+  summary .hint { font-weight:400; color:var(--sub); }
+  .adv { display:flex; flex-wrap:wrap; gap:16px 28px; padding:0 0 20px; }
+
+  .key { display:flex; flex-wrap:wrap; gap:10px 20px; margin-top:20px; font-size:11.5px; color:var(--sub); }
+  .key i { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:6px; vertical-align:-1px; }
+  @media (max-width:760px) {
+    .wrap { padding:36px 16px 64px; }
+    .hero { flex-direction:column; gap:16px; }
+    .stage { grid-template-columns:1fr; }
+    .sender { flex-direction:row; gap:14px; }
+    .cap { grid-template-columns:1fr; }
+    .grid { grid-template-columns:repeat(25,1fr); }
+    .fig { border-left:none; }
+  }
+  @media (prefers-reduced-motion:reduce) { * { animation:none !important; transition:none !important; } }
+</style>
+
+<div class="wrap">
+  <div class="hero">
+    <div>
+      <h1>One function.<br>One thousand slots.</h1>
+      <p class="lede">Every square is one unit of account concurrency. A request fills a square while it runs, then the square frees up.</p>
+    </div>
+    <div class="live"><i class="beacon" id="beacon"></i><span id="livetxt">Idle</span></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="field"><label for="rps">Requests per second</label><input type="range" id="rps" min="0" max="3000" step="10" value="400"><span class="val" id="rpsv">400</span></div>
+    <div class="field"><label for="dur">Duration</label><input type="range" id="dur" min="50" max="3000" step="50" value="1000"><span class="val" id="durv">1.0 s</span></div>
+    <div class="field"><button class="sw vt" id="rcsw" data-on="0" role="switch" aria-checked="false" aria-label="Reserved concurrency"></button><label>Reserved</label>
+      <span class="stepper off" id="rcbox"><button type="button" data-step="-50" data-for="rcn">&minus;</button><input id="rcn" value="400" inputmode="numeric" aria-label="Reserved concurrency value"><button type="button" data-step="50" data-for="rcn">+</button></span></div>
+    <div class="field"><button class="sw tl" id="pcsw" data-on="0" role="switch" aria-checked="false" aria-label="Provisioned concurrency"></button><label>Provisioned</label>
+      <span class="stepper off" id="pcbox"><button type="button" data-step="-50" data-for="pcn">&minus;</button><input id="pcn" value="200" inputmode="numeric" aria-label="Provisioned concurrency value"><button type="button" data-step="50" data-for="pcn">+</button></span></div>
+    <div class="field"><button class="go" id="go" data-on="0">Start traffic</button><button class="link" id="reset">Reset</button></div>
+  </div>
+
+  <div class="stage">
+    <div class="sender">
+      <button class="arrow" id="one" title="Send one request">&#8594;</button>
+      <span>Send one<br>request</span>
+    </div>
+    <div>
+      <div class="regionhead">
+        <span class="t" id="poolmode">Shared account pool</span>
+        <span class="n"><b id="inuse">0</b> of <span id="usable">1,000</span> in use</span>
+      </div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+
+  <div class="figs">
+    <div class="fig"><div class="k">Running now</div><div class="v" id="f1">0</div></div>
+    <div class="fig" id="figpc"><div class="k">Provisioned, ready before traffic</div><div class="v" id="f2">0</div></div>
+    <div class="fig" id="figrc"><div class="k">Left for other functions</div><div class="v" id="f3">0</div></div>
+    <div class="fig hide" id="figwarm"><div class="k">Warm, waiting for reuse</div><div class="v" id="f4">0</div></div>
+    <div class="fig"><div class="k">Rejected with 429</div><div class="v" id="f5">0</div></div>
+  </div>
+
+  <div class="cap">
+    <div>
+      <div class="k">Scaling capacity</div>
+      <div class="v"><span id="cap">1,000</span><small> / 1,000</small></div>
+      <div class="rail"><i id="capfill" style="width:100%"></i></div>
+      <p>Opening a brand new square spends one unit. Reusing a square that already exists, or a provisioned one, spends nothing. Capacity refills at 100 units per second, an illustrative model of the documented scaling rate.</p>
+    </div>
+    <div class="chartwrap">
+      <div class="k"><span style="text-transform:uppercase;letter-spacing:.06em">Last 20 seconds</span><span id="scalrej">Rejected by scaling rate 0</span></div>
+      <canvas id="chart"></canvas>
+    </div>
+  </div>
+
+  <details>
+    <summary><span class="cv">&#8250;</span>Lifecycle detail<span class="hint">optional, off by default</span></summary>
+    <div class="adv">
+      <div class="field"><button class="sw or" id="insw" data-on="0" role="switch" aria-checked="false" aria-label="Init duration"></button><label for="inr">Show Init</label><input type="range" id="inr" min="50" max="2000" step="50" value="400" disabled><span class="val" id="inv">400 ms</span></div>
+      <div class="field"><button class="sw gy" id="idsw" data-on="0" role="switch" aria-checked="false" aria-label="Idle timeout"></button><label for="idr">Show idle retirement</label><input type="range" id="idr" min="500" max="10000" step="500" value="3000" disabled><span class="val" id="idv">3.0 s</span></div>
+    </div>
+  </details>
+
+  <div class="key">
+    <span><i style="background:#ebebf0"></i>Free</span>
+    <span><i style="background:#0071e3"></i>Running</span>
+    <span><i style="background:#cfeae7"></i>Provisioned, ready</span>
+    <span><i style="background:#0a9d95"></i>Running on provisioned</span>
+    <span><i style="background:#ff9500"></i>Init</span>
+    <span><i style="background:#c7c7cc"></i>Warm</span>
+    <span><i style="background:#f4f4f7"></i>Outside this function</span>
+  </div>
+</div>
+
+<script>
+(function () {
+  var N = 1000, FREE = 0, INIT = 1, RUN = 2, IDLE = 3;
+  var S = new Uint8Array(N);      // FREE means no environment exists in this square
+  var T = new Float64Array(N);    // when the current state ends
+  var nodes = [], painted = [], grid = document.getElementById('grid');
+  for (var i = 0; i < N; i++) {
+    var d = document.createElement('div');
+    d.className = 'cell';
+    grid.appendChild(d);
+    nodes.push(d);
+    painted.push('cell');
+  }
+
+  function $(id) { return document.getElementById(id); }
+  function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
+
+  var st = { rps:400, dur:1000, rc:0, rcn:400, pc:0, pcn:200, on:0,
+             init:0, initMs:400, idle:0, idleMs:3000,
+             units:1000, rejected:0, byScaling:0, frac:0, prev:0, busy:0, hist:[] };
+
+  var canvas = $('chart');
+  var ctx = canvas.getContext ? canvas.getContext('2d') : null;
+
+  function provisioned() { return st.pc ? Math.min(st.pcn, st.rc ? st.rcn : N) : 0; }
+  function usable() { return st.rc ? Math.min(st.rcn, N) : N; }
+
+  function reject(n) {
+    st.rejected += n;
+    var a = $('one');
+    a.classList.add('reject');
+    setTimeout(function () { a.classList.remove('reject'); }, 300);
+  }
+
+  function begin(i, t) {
+    if (st.init && S[i] === FREE) { S[i] = INIT; T[i] = t + st.initMs; }
+    else { S[i] = RUN; T[i] = t + st.dur; }
+    st.busy++;
+  }
+
+  // Bounded passes, so admitting many arrivals costs the same as admitting one.
+  function admit(t, want) {
+    if (want <= 0) return;
+    var p = provisioned(), L = usable(), i;
+    var room = L - st.busy; if (room < 0) room = 0;
+    var give = Math.min(want, room), denied = want - give;
+
+    for (i = 0; i < p && give > 0; i++) {                       // provisioned first, never a cold start
+      if (S[i] === FREE || S[i] === IDLE) { S[i] = RUN; T[i] = t + st.dur; st.busy++; give--; }
+    }
+    for (i = p; i < L && give > 0; i++) {                       // reuse an environment that already exists
+      if (S[i] === IDLE) { S[i] = RUN; T[i] = t + st.dur; st.busy++; give--; }
+    }
+    for (i = p; i < L && give > 0; i++) {                       // otherwise open a new square, one unit each
+      if (S[i] !== FREE) continue;
+      if (st.units < 1) { st.byScaling += give; denied += give; give = 0; break; }
+      st.units -= 1;
+      begin(i, t);
+      give--;
+    }
+    if (give > 0) denied += give;
+    if (denied > 0) reject(denied);
+  }
+
+  function paint() {
+    var p = provisioned(), L = usable(), run = 0, warm = 0;
+    for (var i = 0; i < N; i++) {
+      var s = S[i], k = 'cell';
+      if (i < p) k += ' pc'; else if (i >= L) k += ' out';
+      if (s === INIT) k += ' init';
+      else if (s === RUN) { k += ' run'; run++; }
+      else if (s === IDLE && st.idle && i >= p) { k += ' warm'; warm++; }
+      if (painted[i] !== k) { nodes[i].className = k; painted[i] = k; }
+    }
+    $('inuse').textContent = fmt(run);
+    $('usable').textContent = fmt(L);
+    $('f1').textContent = fmt(run);
+    $('f2').textContent = fmt(p);
+    $('f3').textContent = fmt(N - L);
+    $('f4').textContent = fmt(warm);
+    $('f5').textContent = fmt(st.rejected);
+    $('figwarm').className = 'fig' + (st.idle ? '' : ' hide');
+    $('poolmode').textContent = st.rc ? ('Reserved to this function: ' + fmt(L)) : 'Shared account pool';
+    $('cap').textContent = fmt(st.units);
+    $('capfill').style.width = (st.units / 10) + '%';
+    $('scalrej').textContent = 'Rejected by scaling rate ' + fmt(st.byScaling);
+    $('beacon').className = 'beacon' + (st.on ? ' on' : '');
+    $('livetxt').textContent = st.on ? fmt(st.rps) + ' per second arriving' : 'Idle';
+  }
+
+  function chart() {
+    if (!ctx) return;
+    var w = canvas.clientWidth || 520, h = 104, dpr = Math.min(3, window.devicePixelRatio || 1);
+    if (canvas.width !== Math.round(w * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    var H = st.hist, n = 200, i, x, y;
+    ctx.strokeStyle = '#ededf1'; ctx.lineWidth = 1;
+    for (i = 0; i <= 4; i++) { y = Math.round(h * i / 4) + .5; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+    if (H.length < 2) return;
+    var yOf = function (v) { return h - (v / 1000) * (h - 8) - 4; };
+    var g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, 'rgba(255,149,0,.28)');
+    g.addColorStop(1, 'rgba(255,149,0,.01)');
+    ctx.beginPath(); ctx.moveTo(0, h);
+    for (i = 0; i < H.length; i++) ctx.lineTo(w * i / (n - 1), yOf(H[i].u));
+    ctx.lineTo(w * (H.length - 1) / (n - 1), h); ctx.closePath();
+    ctx.fillStyle = g; ctx.fill();
+    ctx.beginPath();
+    for (i = 0; i < H.length; i++) { x = w * i / (n - 1); y = yOf(H[i].u); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
+    ctx.strokeStyle = '#ff9500'; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.fillStyle = '#ff3b30';
+    for (i = 0; i < H.length; i++) if (H[i].r) ctx.fillRect(w * i / (n - 1) - 1, h - 5, 2.5, 5);
+  }
+
+  var sampled = 0;
+
+  function step(t, dt) {
+    st.units = Math.min(1000, st.units + dt * 0.1);
+    var busy = 0;
+    for (var i = 0; i < N; i++) {
+      var s = S[i];
+      if (s && T[i] <= t) {
+        if (s === INIT) { S[i] = RUN; T[i] = t + st.dur; }
+        else if (s === RUN) { S[i] = IDLE; T[i] = st.idle ? t + st.idleMs : Infinity; }
+        else if (s === IDLE) { S[i] = FREE; T[i] = 0; }   // only reachable while idle retirement is on
+        s = S[i];
+      }
+      if (s === INIT || s === RUN) busy++;
+    }
+    st.busy = busy;
+    var before = st.byScaling;
+    if (st.on && st.rps > 0) {
+      st.frac += st.rps * dt / 1000;
+      var whole = Math.floor(st.frac);
+      st.frac -= whole;
+      if (whole > 0) admit(t, whole);
+    }
+    sampled += dt;
+    if (sampled >= 100) {
+      sampled = 0;
+      st.hist.push({ u: st.units, r: st.byScaling > before });
+      if (st.hist.length > 200) st.hist.shift();
+    }
+  }
+
+  function frame(t) {
+    if (!st.prev) st.prev = t;
+    var dt = Math.min(200, t - st.prev);
+    st.prev = t;
+    step(t, dt);
+    paint();
+    chart();
+    window.requestAnimationFrame(frame);
+  }
+
+  function toggle(el, on) { el.dataset.on = on; el.setAttribute('aria-checked', on ? 'true' : 'false'); }
+
+  $('rps').oninput = function () { st.rps = +this.value; $('rpsv').textContent = fmt(st.rps); };
+  $('dur').oninput = function () { st.dur = +this.value; $('durv').textContent = (st.dur / 1000).toFixed(1) + ' s'; };
+  $('inr').oninput = function () { st.initMs = +this.value; $('inv').textContent = st.initMs + ' ms'; };
+  $('idr').oninput = function () { st.idleMs = +this.value; $('idv').textContent = (st.idleMs / 1000).toFixed(1) + ' s'; };
+
+  $('rcsw').onclick = function () { st.rc = st.rc ? 0 : 1; toggle(this, st.rc); $('rcbox').className = 'stepper' + (st.rc ? '' : ' off'); paint(); };
+  $('pcsw').onclick = function () { st.pc = st.pc ? 0 : 1; toggle(this, st.pc); $('pcbox').className = 'stepper' + (st.pc ? '' : ' off'); paint(); };
+  $('insw').onclick = function () { st.init = st.init ? 0 : 1; toggle(this, st.init); $('inr').disabled = !st.init; };
+  $('idsw').onclick = function () {
+    st.idle = st.idle ? 0 : 1;
+    toggle(this, st.idle);
+    $('idr').disabled = !st.idle;
+    var now = window.performance ? performance.now() : Date.now();
+    for (var i = 0; i < N; i++) if (S[i] === IDLE) T[i] = st.idle ? now + st.idleMs : Infinity;
+    paint();
+  };
+
+  function clampField(input, key) {
+    var v = Math.max(0, Math.min(N, parseInt(input.value, 10) || 0));
+    input.value = v; st[key] = v; paint();
+  }
+  $('rcn').oninput = function () { clampField(this, 'rcn'); };
+  $('pcn').oninput = function () { clampField(this, 'pcn'); };
+  Array.prototype.forEach.call(document.querySelectorAll('.stepper button'), function (b) {
+    b.onclick = function () {
+      var input = $(b.dataset.for);
+      input.value = (parseInt(input.value, 10) || 0) + (+b.dataset.step);
+      clampField(input, b.dataset.for === 'rcn' ? 'rcn' : 'pcn');
+    };
+  });
+
+  $('go').onclick = function () {
+    st.on = st.on ? 0 : 1;
+    toggle(this, st.on);
+    this.textContent = st.on ? 'Stop traffic' : 'Start traffic';
+  };
+  $('one').onclick = function () { admit(window.performance ? performance.now() : Date.now(), 1); paint(); };
+  $('reset').onclick = function () {
+    S.fill(FREE); T.fill(0);
+    st.rejected = 0; st.byScaling = 0; st.units = 1000; st.hist = []; st.busy = 0; st.frac = 0;
+    st.on = 0; toggle($('go'), 0); $('go').textContent = 'Start traffic';
+    paint();
+  };
+
+  window.__lsv = { st: st, S: S, T: T, step: step, admit: admit, paint: paint, N: N,
+                   provisioned: provisioned, usable: usable, states: { FREE:FREE, INIT:INIT, RUN:RUN, IDLE:IDLE } };
+  paint();
+  window.requestAnimationFrame(frame);
+})();
+</script>
