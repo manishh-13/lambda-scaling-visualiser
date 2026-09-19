@@ -1,10 +1,14 @@
 # Lambda Scaling Visualiser
 
+### [Try it live: manishh-13.github.io/lambda-scaling-visualiser](https://manishh-13.github.io/lambda-scaling-visualiser/)
+
+No install, no sign in, no AWS account needed. It runs entirely in your browser.
+
 A simple visual representation of how AWS Lambda scales. Functions share an account concurrency quota within each Region. Send traffic to one function and see how it uses that shared capacity.
 
 A minimal, browser-only teaching tool with a 1,000-slot account view, immediate controls, a single-request arrow, and a live scaling-capacity chart. No AWS calls, backend, authentication, or analytics.
 
-![The simple Lambda Scaling Visualiser](docs/lambda-scaling-visualiser.png)
+[![The simple Lambda Scaling Visualiser](docs/lambda-scaling-visualiser.png)](https://manishh-13.github.io/lambda-scaling-visualiser/)
 
 ## Run locally
 
