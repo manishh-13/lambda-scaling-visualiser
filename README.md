@@ -28,7 +28,7 @@ npm run build
 npm run preview -- --host 127.0.0.1 --port 4322 --strictPort
 ```
 
-The application is not deployed by this repository alone. The GitHub Pages workflow can publish it after you create a repository and enable Pages.
+This repository publishes the live site automatically. See [GitHub Pages](#github-pages) if you want to deploy your own copy.
 
 ## The simple screen
 
@@ -89,15 +89,19 @@ With the production preview running, run `npm run test:browser`. Override `QA_UR
 
 ## GitHub Pages
 
-The workflow in `.github/workflows/deploy-pages.yml` tests and builds, then deploys `dist` with official Pages actions. Enable GitHub Actions as the Pages source in repository settings. It runs manually and on pushes to `main`; remove the push trigger for manual-only deployment.
+This repository is already deployed: every push to `main` runs `.github/workflows/deploy-pages.yml`, which tests, builds, and publishes `dist` to <https://manishh-13.github.io/lambda-scaling-visualiser/> using the official Pages actions. Pages is configured with GitHub Actions as the source. The workflow can also be run manually from the Actions tab.
 
-Override the base path for another repository name:
+To deploy your own fork:
+
+1. In Settings, Pages, set Source to GitHub Actions.
+2. Push to `main`, or run the workflow manually. Remove the `push` trigger if you want manual-only deploys.
+3. If your repository has a different name, the workflow passes it automatically. For a local build, override the base path yourself:
 
 ```bash
 VITE_BASE_PATH=/renamed-repository/ npm run build
 ```
 
-A private repository may need an eligible GitHub plan for Pages, and its Pages site can still be publicly reachable.
+Note that a Pages site is publicly reachable even when it is published from a private repository, and Pages from a private repository requires an eligible GitHub plan.
 
 ## AWS sources
 
