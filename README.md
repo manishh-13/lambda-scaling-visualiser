@@ -28,7 +28,7 @@ npm run build
 npm run preview -- --host 127.0.0.1 --port 4322 --strictPort
 ```
 
-This repository publishes the live site automatically. See [GitHub Pages](#github-pages) if you want to deploy your own copy.
+This repository publishes the live site automatically. See [GitHub Pages](#github-pages) if you want to deploy your own copy. The public page includes a short, visible explanation in the initial HTML so visitors and crawlers can understand the simulation before its JavaScript loads. `public/sitemap.xml` lists the live page; submit that URL through Search Console if you manage the Pages property. `public/social-preview.png` is the link preview. If you publish a fork under a different URL, update the canonical URL, share metadata and sitemap before deploying.
 
 ## The simple screen
 

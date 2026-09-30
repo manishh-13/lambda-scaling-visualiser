@@ -202,6 +202,12 @@ select { min-height: 36px; font-size: var(--text-body); border: 1px solid #c6cbd
 .app-footer { padding-top: 18px; border-top: 1px solid var(--hair); font-size: var(--text-body); line-height: 1.7; color: var(--sub); }
 .app-footer > p { margin: 0 0 10px; }
 .app-footer summary { cursor: pointer; width: fit-content; }
+.search-explainer { max-width: 1480px; margin: 0 auto; padding: 24px 32px 72px; border-top: 1px solid var(--hair); color: var(--sub); line-height: 1.7; }
+.search-explainer h2 { margin: 0 0 14px; color: var(--ink); }
+.search-explainer p { max-width: 780px; margin: 0 0 14px; }
+.search-explainer .eyebrow { margin-bottom: 6px; }
+@media (max-width: 720px) { .search-explainer { padding: 24px 20px 48px; } }
+@media (max-width: 370px) { .search-explainer { padding-inline: 12px; } }
 .model-notes { max-width: 800px; padding-top: 8px; }
 .source-links { display: flex; gap: 10px 22px; flex-wrap: wrap; }
 .error-banner { padding: 15px; border: 1px solid #dcb0aa; border-radius: 12px; font-size: var(--text-meta); background: #fff2ee; margin-bottom: 16px; color: #83261e; }

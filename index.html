@@ -4,13 +4,30 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fffcf9" />
-    <meta name="description" content="A simple visual representation of how AWS Lambda scales. Experiment with traffic and concurrency in your browser." />
+    <title>AWS Lambda Scaling Visualiser | Interactive Concurrency Simulator</title>
+    <meta name="description" content="Explore AWS Lambda scaling in an interactive browser simulation. Change traffic and duration to see concurrency, cold starts, warm reuse and throttling. No AWS account needed." />
+    <link rel="canonical" href="https://manishh-13.github.io/lambda-scaling-visualiser/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="AWS Lambda Scaling Visualiser | Interactive Concurrency Simulator" />
+    <meta property="og:description" content="See how traffic, duration and concurrency limits affect AWS Lambda scaling in a browser-only simulation." />
+    <meta property="og:url" content="https://manishh-13.github.io/lambda-scaling-visualiser/" />
+    <meta property="og:image" content="https://manishh-13.github.io/lambda-scaling-visualiser/social-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Lambda Scaling Visualiser showing a shared concurrency pool and scaling chart." />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Crect width=%2740%27 height=%2740%27 rx=%2710%27 fill=%27%23fff0f3%27/%3E%3Ctext x=%2720%27 y=%2728%27 text-anchor=%27middle%27 font-size=%2728%27 fill=%27%23c42a52%27%3E%CE%BB%3C/text%3E%3C/svg%3E" />
-    <title>Lambda Scaling Visualiser</title>
   </head>
   <body>
     <a class="skip-link" href="#main-content">Skip to simulation</a>
     <div id="root"></div>
+    <section class="search-explainer" aria-labelledby="how-it-works-heading">
+      <p class="eyebrow">Explore the model</p>
+      <h2 id="how-it-works-heading">See how AWS Lambda concurrency scales</h2>
+      <p>Concurrency is the number of requests a Lambda function handles at once. For a steady workload, estimate it as requests per second multiplied by average duration in seconds. Change those controls in the visualiser to see demand fill an account concurrency pool in one Region, then watch scaling capacity and throttled requests as traffic changes.</p>
+      <p>Try reserved concurrency to set a function limit or provisioned concurrency to explore prepared capacity. Open Lifecycle &amp; more to see optional, illustrative Init and warm reuse. This browser-only simulator makes no AWS calls. Its scaling and lifecycle model is for learning, not live account metrics or an AWS timing guarantee.</p>
+      <p>Read the <a href="https://github.com/manishh-13/lambda-scaling-visualiser">source code and model assumptions</a> or the <a href="https://docs.aws.amazon.com/lambda/latest/dg/lambda-concurrency.html">AWS Lambda concurrency documentation</a>.</p>
+    </section>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
